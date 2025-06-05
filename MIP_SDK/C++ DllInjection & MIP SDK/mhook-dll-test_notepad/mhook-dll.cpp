@@ -1,0 +1,56 @@
+
+#include "stdafx.h"
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL,  // handle to DLL module
+    DWORD fdwReason,     // reason for calling function
+    LPVOID lpvReserved)  // reserved
+{
+    // Perform actions based on the reason for calling.
+    std::thread mipThread;
+    switch (fdwReason)
+    {
+    case DLL_PROCESS_ATTACH:
+#ifdef _DEBUG
+        SetDllDirectory(L"D:\\FromE\\Daniel\\VC++\\MIPTest\\mhook-dll-test\\x64\\Debug\\");
+#elif NDEBUG
+        SetDllDirectory(L"D:\\FromE\\Daniel\\VC++\\MIPTest\\mhook-dll-test\\x64\\Release\\");
+#endif
+        //MessageBox(NULL, L"1", L"2", MB_OK);
+        //mipThread = std::thread(MIPInit);
+        //MessageBox(NULL, L"3", L"4", MB_OK);
+        // Initialize once for each new process.
+        // Return FALSE to fail DLL load.
+        //printf("Testing Close.\n");
+        //if (Mhook_SetHook((PVOID*)&TrueCreateFileW, (PVOID)HookCreateFileW))
+        //{
+            //CloseHandle(NULL);
+            // Remove the hook
+            //Mhook_Unhook((PVOID*)&TrueCloseHandle);
+        //}
+
+        // Initialize once for each new process.
+        // Return FALSE to fail DLL load.
+        Mhook_SetHook((PVOID*)&TrueReadFile, (PVOID)HookReadFile);
+
+        break;
+
+    case DLL_THREAD_ATTACH:
+        // Do thread-specific initialization.
+        break;
+
+    case DLL_THREAD_DETACH:
+        // Do thread-specific cleanup.
+        break;
+
+    case DLL_PROCESS_DETACH:
+
+        if (lpvReserved != nullptr)
+        {
+            break; // do not do cleanup if process termination scenario
+        }
+
+        // Perform any necessary cleanup.
+        break;
+    }
+    return TRUE;  // Successful DLL_PROCESS_ATTACH.
+}

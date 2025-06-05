@@ -1,0 +1,106 @@
+#!python
+import sys
+
+Import("""
+    api_includes_dir
+    bins
+    crypto_lib_dir
+    crypto_libs
+    dns_lib
+    protection_lib
+    file_lib
+    file_lib_static
+    file_samples
+    consent_sample_lib
+    common_sample_lib
+    env
+    core_lib
+    upe_lib
+    is_file_sdk_enabled
+    libgsf_lib_dir
+    libgsf_libs
+    libxml2_libs
+    libxml2_lib_dir
+    oneds_libs
+    pdf_only_samples
+    platform
+    resources_sample
+    samples_dir
+    sqlite3_libs
+    sqlite3_lib_dir
+    static_samples
+    xmp_lib_dir
+    xmp_libs
+""")
+
+if pdf_only_samples:
+    Import("""
+        file_pdf_only_lib
+        bins_pdf_only
+    """)
+
+includes_path = [
+    api_includes_dir,
+    samples_dir + '/common',
+    samples_dir + '/consent' ]
+
+src_files = Split("""
+    file_handler_observer.cpp
+    main.cpp
+    profile_observer.cpp
+    stream_over_buffer.cpp
+""")
+
+file_sample_bin = ''
+file_pdf_only_sample_bin = ''
+
+if is_file_sdk_enabled:
+    file_sample_env = env.Clone()
+    file_sample_env.Append(CPPPATH= includes_path)
+    file_sample_env.Append(LIBPATH= [bins])
+    if static_samples:
+        if platform == 'darwin':
+            file_sample_env.AppendUnique(FRAMEWORKS=['Foundation', 'CoreFoundation', 'Security', 'IOKit', 'AppKit'])
+            file_sample_env.Append(LINKFLAGS=['-ObjC'])
+        file_sample_env.Append(LIBPATH= [crypto_lib_dir, libxml2_lib_dir, xmp_lib_dir, libgsf_lib_dir, sqlite3_lib_dir])
+        file_sample_env.Append(LIBS= [file_lib_static, common_sample_lib, consent_sample_lib, crypto_libs, dns_lib, libxml2_libs, oneds_libs, xmp_libs, libgsf_libs, sqlite3_libs])
+    elif platform == 'win32':
+        if file_samples:
+            file_sample_env.Append(LIBS= [file_lib[1], protection_lib[1], common_sample_lib, consent_sample_lib])
+            file_sample_env.Append(LINKFLAGS= ['/guard:cf'])
+        if pdf_only_samples:
+            file_pdf_only_sample_env = env.Clone()
+            file_pdf_only_sample_env.Append(LINKFLAGS= ['/guard:cf'])
+            file_pdf_only_sample_env.Append(CPPPATH= includes_path)
+            file_pdf_only_sample_env.Append(LIBPATH = [bins_pdf_only])
+            file_pdf_only_sample_env.Append(LIBS = [file_pdf_only_lib[1], common_sample_lib, consent_sample_lib])
+    elif platform == 'linux2':
+        file_sample_env.Append(LIBPATH= [crypto_lib_dir])
+        file_sample_env.Append(LIBS= [crypto_libs, core_lib, protection_lib, upe_lib, file_lib, common_sample_lib, consent_sample_lib])
+    else:
+        file_sample_env.Append(LIBS= [core_lib, protection_lib, upe_lib, file_lib, common_sample_lib, consent_sample_lib])
+    
+    if platform == 'darwin':
+        file_sample_env.Append(LINKFLAGS= ['-Wl,-rpath,@executable_path'])
+    elif platform == 'linux2':
+        file_sample_env.Append(LINKFLAGS= ['-Wl,-rpath-link,{0}'.format(Dir(bins).path)])
+        file_sample_env.Append(RPATH= env.Literal('\\$$ORIGIN'))
+
+    if file_samples:
+        file_sample_bin = file_sample_env.Program('file_sample', source = [src_files, resources_sample])
+    if pdf_only_samples:
+        file_pdf_only_sample_bin = file_pdf_only_sample_env.Program('file_pdf_only_sample', source = [src_files, resources_sample])
+
+file_sample_source = [
+    samples_dir + '/file/file_execution_state_impl.h',
+    samples_dir + '/file/file_handler_observer.cpp',
+    samples_dir + '/file/file_handler_observer.h',
+    samples_dir + '/file/main.cpp',
+    samples_dir + '/file/profile_observer.cpp',
+    samples_dir + '/file/profile_observer.h',
+    samples_dir + '/file/stream_over_buffer.cpp',
+    samples_dir + '/file/stream_over_buffer.h',
+    samples_dir + '/file/SConscript'
+]
+
+Return('file_sample_bin', 'file_pdf_only_sample_bin', 'file_sample_source')
